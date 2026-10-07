@@ -1,0 +1,30 @@
+[
+  {
+    "file": "motivation.png",
+    "source": "FIGS/figure1_motivation_new.pdf",
+    "source_sha256": "4c4c20dc95b989a4940610343dc8e999db7155eb2afee62afc5c17d17130e7c9",
+    "width": 1051.6800537109375,
+    "height": 680.4000244140625
+  },
+  {
+    "file": "method.png",
+    "source": "FIGS/method-new.pdf",
+    "source_sha256": "ae343bdfa68f8385bdc74938d27063cfc0ffcafe87cb5efc9228cfecaf0276d8",
+    "width": 1350.0,
+    "height": 511.67999267578125
+  },
+  {
+    "file": "diagnosis.png",
+    "source": "FIGS/diagnosis_pair.pdf",
+    "source_sha256": "ee66ec92a8c06fb199125a520ec477796846bafe0cc509e938d18875aba6a614",
+    "width": 486.8879699707031,
+    "height": 256.8793640136719
+  },
+  {
+    "file": "cost_accuracy.png",
+    "source": "FIGS/cost_accuracy.pdf",
+    "source_sha256": "8bd3e8e55cb5bc7f8c24dd1cb06b2e76715ed6cbebdd42f0f3dfb994d6259302",
+    "width": 228.34500122070312,
+    "height": 125.1624984741211
+  }
+]

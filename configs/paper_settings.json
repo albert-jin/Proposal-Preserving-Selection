@@ -1,0 +1,13 @@
+{
+  "description": "Settings reported in the current manuscript; documentation only, not loaded by the archived server CLI.",
+  "student_models": ["Qwen/Qwen2.5-0.5B-Instruct", "Qwen/Qwen2.5-1.5B-Instruct", "Qwen/Qwen2.5-7B-Instruct"],
+  "teacher_model": "Qwen/Qwen2.5-32B-Instruct",
+  "teacher_precision": "BF16",
+  "seeds": [42, 1337, 2024],
+  "student_top_k": 64,
+  "candidate_k": 16,
+  "max_context_len": 512,
+  "num_bins": 16,
+  "warmup_steps": 3,
+  "entropy_quantile": 0.99
+}

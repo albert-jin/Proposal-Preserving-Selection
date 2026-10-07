@@ -1,0 +1,15 @@
+# Install a PyTorch build appropriate for your CUDA runtime separately.
+# Core versions follow the archived server setup, rather than an upstream freeze.
+torch>=2.5,<3
+transformers==4.57.3
+peft==0.17.1
+datasets==3.6.0
+huggingface_hub>=0.34,<1
+accelerate>=1.10,<2
+numpy>=1.26,<3
+tqdm>=4.66
+regex
+sympy>=1.13,<2
+latex2sympy2==1.9.1
+word2number==1.1
+jsonlines>=4,<5

@@ -1,0 +1,55 @@
+{
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "model_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+  "seed": 20261004,
+  "sources": {
+    "DigitalLearningGmbH/MATH-lighteval": {
+      "revision": "0530c78699ea5e8eb5530600900e1f328b48acad",
+      "fingerprint": "6f75cea468befa54"
+    },
+    "HuggingFaceH4/MATH-500": {
+      "revision": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+      "fingerprint": "f3124375297911ba"
+    },
+    "openai/gsm8k": {
+      "revision": "740312add88f781978c0658806c59bc2815b9866",
+      "fingerprint": "59ec1b7f9357c7a2"
+    },
+    "math-ai/aime25": {
+      "revision": "563bb8404243c5f09de6ec262f2db674fe5bce9b",
+      "fingerprint": "cf493e24f4d1493b"
+    }
+  },
+  "files": [
+    {
+      "file": "math_calibration.jsonl",
+      "n": 32,
+      "sha256": "f1bcba14ea994ab0b872b87bc70de85b0d6604be8a51046595a3c37657672a27"
+    },
+    {
+      "file": "math_dev.jsonl",
+      "n": 128,
+      "sha256": "9d4fc4e8cf5bb975a8a2a210f339290eb5dfbc2c06d00bf9030c29f66feb107e"
+    },
+    {
+      "file": "math_train.jsonl",
+      "n": 7340,
+      "sha256": "fdcde625bef8e12d42a64b69e4382371cd716b2f318fbc35c12b54a526873a35"
+    },
+    {
+      "file": "math500_test.jsonl",
+      "n": 500,
+      "sha256": "991d6585fe3587dba525bebc9d99d227fd23401073906d41bcb6443540a521aa"
+    },
+    {
+      "file": "gsm8k_test.jsonl",
+      "n": 1319,
+      "sha256": "d64d70df0fb2ad37f7409178b8f692ffa6d1e11b21e56ecf29f77352797b95c2"
+    },
+    {
+      "file": "aime25_test.jsonl",
+      "n": 30,
+      "sha256": "c8d2bee95766fbaa2bef478c2ba5b91da2e315957fe7cd809db31f562483cab2"
+    }
+  ]
+}
