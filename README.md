@@ -242,7 +242,6 @@ behavior, and the small portability changes made for this source release.
 
 ## Acknowledgments
 
-The implementation builds on
-[Select-to-Think](https://github.com/YeRona/Select-to-Think). See
-[NOTICE.md](NOTICE.md) for source attribution. Model and dataset ownership and
+The implementation builds on Select-to-Think. See
+NOTICE.md for source attribution. Model and dataset ownership and
 licenses remain with their respective providers.
