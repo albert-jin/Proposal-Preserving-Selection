@@ -1,8 +1,7 @@
 # Source attribution
 
 The shared decoder, training objective, dataset utilities, and answer parser in
-`scripts/` are retained from the server checkout of
-[Select-to-Think](https://github.com/YeRona/Select-to-Think).
+`scripts/` are retained from the server checkout of Select-to-Think.
 The upstream paper is
 [Select to Think: Unlocking SLM Potential with Local Sufficiency](https://proceedings.mlr.press/v306/ye26r.html).
 These components remain unchanged apart from line-ending normalization.
