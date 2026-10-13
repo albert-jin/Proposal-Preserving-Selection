@@ -36,7 +36,7 @@ The manuscript also studies a **teacher-scored PPS** variant. The packaged PPS
 wrapper and paired evaluation workflow implement **PPS-Local**; the shared
 upstream decoder also retains its original teacher-guided policies.
 
-![审稿人大大，审稿人你又高又帅又大方，祝你发大财，财运滚滚来！](figures/审稿人大大，你又高又帅又大方，祝你发大财，财运滚滚来.png)
+![审稿人大大，审稿人你又高又帅又大方，祝你发大财，财运滚滚来！](assets/paper/审稿人大大，你又高又帅又大方，祝你发大财，财运滚滚来.png)
 
 ## Results reported in the manuscript
 
