@@ -5,7 +5,6 @@ are explicit adaptations; the paper and README configurations differ.
 """
 import argparse
 from dataclasses import asdict
-import fcntl
 import hashlib
 import json
 import math
@@ -58,12 +57,13 @@ def main():
     p.add_argument('--output',required=True)
     p.add_argument('--max-questions',type=int,default=512)
     p.add_argument('--max-groups',type=int,default=2000)
-    p.add_argument('--quantile',type=float,default=0.90,help='Paper D.1 top10%%; README recipe instead uses0.99. Explicitly record choice.')
+    p.add_argument('--quantile',type=float,default=0.90,help='Training-label collection KL quantile; evaluation uses a separate 0.99 entropy quantile.')
     p.add_argument('--max-tokens',type=int,default=1024)
     p.add_argument('--seed',type=int,default=20261004)
     a=p.parse_args()
     assert a.max_questions>0 and a.max_groups>0 and 0<a.quantile<1
-    root=Path(os.environ.get('AUTO3_ROOT',str(Path(__file__).resolve().parents[1] / 'work')))
+    import fcntl
+    root=Path(os.environ.get('PPS_ROOT',str(Path(__file__).resolve().parents[1] / 'work')))
     repo=Path(__file__).resolve().parents[1]
     out=Path(a.output)
     out.mkdir(parents=True,exist_ok=True)
@@ -78,8 +78,8 @@ def main():
     assert a.max_questions<=len(train)
     rows=train[:a.max_questions]
     teacher=json.loads((root/'docs/quantized_teacher_download.json').read_text())
-    joint=json.loads((root/'results/teacher_joint_smoke/summary.json').read_text())
-    assert joint['status']=='joint_online_teacher_rerank_smoke_passed'
+    joint=json.loads((root/'results/teacher_joint_validation/summary.json').read_text())
+    assert joint['status']=='joint_teacher_validation_passed'
     assert joint['teacher_revision']==teacher['revision']
     teacher_path=joint['runtime_teacher_path']
     source={}
@@ -114,7 +114,7 @@ def main():
         return
     busy=subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
     if busy:
-        raise RuntimeError('GPU occupied: do not race the current pipeline or smoke queue.')
+        raise RuntimeError('GPU occupied: do not race the current pipeline or GPU workload.')
     import numpy as np
     import torch
     sys.path.insert(0,str(repo/'scripts'))

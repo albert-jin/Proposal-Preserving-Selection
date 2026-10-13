@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 from huggingface_hub import HfApi, snapshot_download
 
-root = Path(os.environ.get('AUTO3_ROOT', str(Path(__file__).resolve().parents[1] / 'work')))
+root = Path(os.environ.get('PPS_ROOT', str(Path(__file__).resolve().parents[1] / 'work')))
 (root/'docs').mkdir(parents=True, exist_ok=True)
 repo = 'unsloth/Qwen2.5-32B-Instruct-bnb-4bit'
 revision = 'aa79e3472818bdec779075d80928602591d9f2a0'
@@ -30,6 +30,6 @@ for f in files:
 config=json.loads((path/'config.json').read_text())
 result=dict(time=time.time(),repo=repo,revision=revision,path=str(path),files=records,
     quantization_config=config.get('quantization_config'),status='downloaded_hash_verified_not_gpu_tested',
-    purpose='Teacher-supervised resource-adapted S2T control and potential Self-Evolving bootstrap. Quantization is a disclosed departure from full-precision teacher.')
+    purpose='Pinned 4-bit teacher for collecting candidate probabilities on the training partition. The manuscript uses a BF16 teacher.')
 (root/'docs/quantized_teacher_download.json').write_text(json.dumps(result,indent=2))
 print(json.dumps(result,indent=2),flush=True)

@@ -58,7 +58,7 @@ def main():
     p.add_argument('--kl-chunk',type=int,default=64)
     a=p.parse_args()
     assert min(a.epochs,a.microbatch,a.accumulation,a.kl_chunk)>0 and a.lr>0
-    root=Path(os.environ.get('AUTO3_ROOT',str(Path(__file__).resolve().parents[1] / 'work')))
+    root=Path(os.environ.get('PPS_ROOT',str(Path(__file__).resolve().parents[1] / 'work')))
     out=Path(a.output); out.mkdir(parents=True,exist_ok=True)
     import fcntl
     lock=open(out/'.training.lock','a'); fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -78,7 +78,7 @@ def main():
         assert len(r['cand_ids'])==16 and len(r['teacher_prob_abs'])==16
         assert 'teacher' in r['teacher_label_source']
     busy=subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
-    if busy: raise RuntimeError('GPU occupied: wait for the existing experiment and smoke queue.')
+    if busy: raise RuntimeError('GPU occupied: wait for the existing experiment and GPU workload.')
     from transformers import AutoModelForCausalLM,AutoTokenizer
     from huggingface_hub import snapshot_download
     base=json.loads((root/'data/manifest.json').read_text())

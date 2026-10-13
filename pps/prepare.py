@@ -9,7 +9,7 @@ from pathlib import Path
 from datasets import load_dataset
 from huggingface_hub import HfApi, snapshot_download
 
-ROOT = Path(os.environ.get('AUTO3_ROOT', str(Path(__file__).resolve().parents[1] / 'work')))
+ROOT = Path(os.environ.get('PPS_ROOT', str(Path(__file__).resolve().parents[1] / 'work')))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from parser import parse_ground_truth, parse_question
 

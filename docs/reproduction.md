@@ -1,87 +1,96 @@
 # Reproduction details
 
-## Source and method
+## Implementation
 
-The release is curated from the final archived server source for the
-`selector-only-deployment` experiment. The core PPS implementation is
-`autores/split_adapter.py`; shared decoding, scoring, loss, and grading code are
-retained in `scripts/`. The student-compatible data preparation utility and
-teacher download/hardware-check helpers are included because the retained
-training and evaluation wrappers depend on their outputs.
+`pps/split_adapter.py` implements deployment separation: the base model generates
+proposals and generation KV states, while the trained adapter scores candidates
+through independent forward passes. The shared decoder, training objective,
+dataset utilities, and mathematical answer grader are in `scripts/`.
 
-No experimental logs, generated answers, model weights, historical Git objects,
-or checkpoints are distributed in this repository. Running the supplied scripts
-creates local artifacts; `.gitignore` excludes them from publication.
+The executable workflow downloads pinned pretrained models and public datasets,
+collects candidate probabilities from the teacher, trains a scoring adapter, and
+evaluates native and PPS deployment using the same checkpoint. Model weights,
+checkpoints, training examples, predictions, and execution logs are created under
+`PPS_ROOT` (default: `<repository>/work`) and are excluded from version control.
 
 ## Paper and executable protocol
 
-| Item | Current manuscript | Archived executable workflow |
+| Item | Current manuscript | Packaged executable workflow |
 |---|---|---|
 | Students | Qwen2.5-Instruct 0.5B, 1.5B, 7B | Qwen2.5-1.5B-Instruct |
 | Seeds | 42, 1337, 2024 | 20261004 |
-| Teacher for training | Qwen2.5-32B-Instruct, BF16 | Pinned 4-bit export of Qwen2.5-32B-Instruct |
+| Training teacher | Qwen2.5-32B-Instruct, BF16 | Pinned 4-bit export of Qwen2.5-32B-Instruct |
 | Benchmark scope | Eight benchmarks | MATH500, GSM8K, AIME25 |
-| Archived paired run | Not inferred from this release | MATH500: 128 examples; GSM8K: 128; AIME25: 30 |
-| Complete-split CLI | Paper results use their stated protocol | Accepts MATH500: 500; GSM8K: 1,319; AIME25: 30 |
-| Candidate scoring | Adapter, expected reserved-bin score | Same mechanism, 16 candidates and 16 bins |
+| Default evaluation | Paper-specific protocol | Complete splits: 500, 1,319, and 30 examples |
+| Optional subset evaluation | Separate from paper tables | 128 MATH500, 128 GSM8K, and all 30 AIME25 examples |
+| Candidate scoring | Expected reserved-bin score | 16 candidates and 16 bins |
 | Scoring context | 512 tokens | 512 tokens |
-| Evaluation trigger | 99th-percentile entropy | 99th-percentile entropy from train-only calibration |
+| Evaluation trigger | 99th-percentile entropy | 99th-percentile entropy from training-calibration traces |
 
-`configs/paper_settings.json` documents the manuscript settings. It is not a
-configuration loader and does not override the archived evaluation CLI.
-`configs/server_data_manifest.json` specifies the model revision, dataset
-revisions, data split sizes, and hashes used by that CLI.
+`configs/paper_settings.json` documents the manuscript settings; it does not
+configure the executable workflow. `configs/server_data_manifest.json` pins its
+student model, dataset revisions, split sizes, and data hashes.
 
-The `full` option launches complete splits supported by the archived evaluator;
-it does not switch to the manuscript's seed schedule, teacher precision, or
-other datasets. This packaging operation did not rerun benchmark experiments.
+`bash run_paired_eval.sh` evaluates complete supported benchmark splits by default.
+Pass `quick` as its second argument to use fixed subsets. Subset sampling uses a
+fixed seed without consulting model outputs or scores. Development data remains
+separate from benchmark evaluation. Results retain their evaluation scope.
 
-## Portability changes
+The collection quantile of 0.90 controls the KL trigger for teacher-label
+collection. The evaluation quantile of 0.99 controls the entropy trigger. They
+are distinct parameters. The collection budget counts candidate groups; it also
+records the number of represented questions.
 
-- Server-specific absolute root paths now default to `<repository>/work` and can
-  be overridden with `AUTO3_ROOT`.
-- Preparation downloads the revisions recorded in the server data manifest,
-  rather than resolving the current default branch. Prepared split hashes must
-  match that manifest.
-- Collection and hardware-check scripts verify shared decoder file hashes via
-  `configs/upstream_source_hashes.json`, replacing references to a private Git
-  object. Their shared decoder files are unchanged after newline normalization.
-- The standalone teacher smoke test takes one training-calibration context
-  instead of reading an old pilot experiment's generated group. Its model
-  forward pass and tokenizer compatibility checks remain intact.
-- The tiny tokenizer fixture was separated from an unrelated refinement test.
-- Shell launchers set portable paths and run the retained entry points. They do
-  not change the decoder or experimental hyperparameters.
+## Input and comparison checks
 
-The package intentionally retains the original evaluator's Linux file locks,
-grading timeouts, GPU-idle checks, input-size checks, checkpoint hashes, and
-resume guards. Use Linux for training and benchmark evaluation.
+- Preparation verifies official split hashes and checks question overlap among
+  MATH training, calibration, development, and MATH500 partitions.
+- Evaluation verifies complete dataset hashes against the pinned manifest. For
+  subsets, it also verifies source hashes, indices, IDs, and exact selected rows.
+- Checkpoint files must match `checkpoint_manifest.json`. Calibration uses only
+  the 32 training-calibration questions and the corresponding generation traces.
+- Paired comparison requires the same checkpoint manifest, data, calibration,
+  runtime settings, evaluation scope, and source fingerprints. It requires native
+  deployment as the baseline and base-proposal deployment as the PPS method.
+- Source fingerprints cover the actual decoder, grader, utilities, evaluation
+  wrapper, and PPS routing wrapper. Older outputs without these fingerprints
+  must be regenerated before comparison.
+- Completed and resumed runs retain configuration and output checks. Use a fresh
+  output directory when changing a setup.
 
-## Environment
+## Real-model GPU validation
 
-The server setup recorded Python 3.12, Transformers 4.57.3, PEFT 0.17.1,
-Datasets 3.6.0, and a CUDA-enabled PyTorch installation. Teacher collection used
-bitsandbytes 0.48.2. The requirements file pins the main model libraries and
-allows a suitable PyTorch/CUDA build. It is not an exact lockfile of the original
-server environment.
+`pps/validate_teacher.py` checks the teacher's token IDs against the student
+and performs a forward pass on a training-calibration question. The quantized
+export includes an extra padding token; a separate runtime directory uses the
+pinned student tokenizer without modifying the downloaded model files.
 
-## What the checks establish
+`pps/validate_joint.py` loads the real student and teacher together and runs
+teacher-guided decoding on one training-calibration question. Its candidate groups
+are written to a separate validation directory and must not enter training.
+Collection requires the successful validation record and matching teacher revision.
+These checks establish compatibility and bounded GPU memory use, not benchmark
+accuracy or memory requirements for every sequence length.
 
-`run_checks.sh` uses tiny random models and synthetic tensors. It checks base
-proposal logits, adapter-enabled candidate scores, restoration of adapter state,
-chunked KL loss/gradient agreement, and training integration with tied and untied
-embeddings. It requires no pretrained weights. Passing these checks does not
-establish benchmark accuracy or full paper reproducibility.
+## Environment and validation scope
 
-Release validation passed all four CPU check invocations (adapter separation,
-chunked objective equivalence, and training integration with tied and untied
-embeddings) under Python 3.12.14, PyTorch 2.14.1, Transformers 4.57.3, and PEFT
-0.17.1. This validation used Windows CPU execution of the check scripts directly;
-the Linux GPU training/evaluation workflow was not rerun during packaging.
+Use Linux, Python 3.12, and a CUDA-enabled PyTorch installation. File locking,
+grading timeouts, GPU-idle checks, and the teacher's tokenizer symlinks are part of
+the Linux workflow. The original adaptation used a 24 GB GPU; context length and
+runtime versions affect memory requirements.
+
+The core requirements pin Transformers 4.57.3, PEFT 0.17.1, and Datasets 3.6.0.
+Teacher-label collection additionally uses bitsandbytes 0.48.2. The requirements
+are not a complete lockfile of the original server environment.
+
+This source cleanup does not rerun GPU training or benchmark evaluation. README
+scores are transcribed manuscript results, not measurements produced by this
+cleanup. The packaged single-model protocol does not reproduce all manuscript
+tables, model sizes, seeds, or ablations.
 
 ## Figure provenance
 
-All displayed figures are rendered from the PDFs referenced by the current
-manuscript's `main.tex` and included sections. `assets/paper/sources.json` records
-their source filenames and SHA-256 hashes. README numerical results are taken
-from Table 2, not inferred from plots or regenerated by the packaged code.
+The figures are exported from the PDFs referenced by the manuscript.
+`assets/paper/sources.json` records source filenames and SHA-256 hashes;
+`assets/paper/manuscript_sources.json` records manuscript source hashes. README
+numerical results are from Table 2 and are not inferred from the plots.

@@ -1,4 +1,4 @@
-"""Run manually only after the active student GPU pipeline ends."""
+"""Validate the pinned teacher and tokenizer on a real training-calibration question."""
 import hashlib
 import json
 import os
@@ -6,12 +6,12 @@ from pathlib import Path
 import subprocess
 import time
 
-root = Path(os.environ.get('AUTO3_ROOT', str(Path(__file__).resolve().parents[1] / 'work')))
+root = Path(os.environ.get('PPS_ROOT', str(Path(__file__).resolve().parents[1] / 'work')))
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 processes = subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
 if processes:
-    raise RuntimeError('Another GPU process is active; leave it untouched and run this smoke test later.')
+    raise RuntimeError('Another GPU process is active; leave it untouched and run this hardware validation later.')
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from huggingface_hub import snapshot_download
@@ -67,7 +67,7 @@ with torch.inference_mode():
     scores = probs[group['cand_ids']].cpu().tolist()
     torch.cuda.synchronize()
     forward_seconds = time.time()-start
-result = dict(status='single_train_context_gpu_smoke_passed_not_baseline_reproduction',
+result = dict(status='teacher_gpu_validation_passed',
     teacher_repo=download['repo'],revision=download['revision'],vocabulary_identical=True,
     runtime_model_path=str(runtime),tokenizer_compatibility=runtime_record,
     group_id=group['group_id'],context_sha256=hashlib.sha256(json.dumps(ids).encode()).hexdigest(),
@@ -75,5 +75,5 @@ result = dict(status='single_train_context_gpu_smoke_passed_not_baseline_reprodu
     load_seconds=load_seconds,forward_seconds=forward_seconds,
     peak_allocated_bytes=torch.cuda.max_memory_allocated(),peak_reserved_bytes=torch.cuda.max_memory_reserved(),
     gpu=torch.cuda.get_device_name(0),torch_version=torch.__version__)
-(root/'docs/quantized_teacher_smoke.json').write_text(json.dumps(result,indent=2))
+(root/'docs/quantized_teacher_validation.json').write_text(json.dumps(result,indent=2))
 print(json.dumps(result,indent=2),flush=True)

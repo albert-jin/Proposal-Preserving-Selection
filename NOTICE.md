@@ -4,14 +4,16 @@ The shared decoder, training objective, dataset utilities, and answer parser in
 `scripts/` are retained from the server checkout of Select-to-Think.
 The upstream paper is
 [Select to Think: Unlocking SLM Potential with Local Sufficiency](https://proceedings.mlr.press/v306/ye26r.html).
-These components remain unchanged apart from line-ending normalization.
+The shared decoder and training objective retain their original behavior.
+The answer parser removes an unused dataset alias and obsolete comments;
+answer extraction and mathematical equivalence for the supported benchmarks
+retain their original behavior.
 
-The deployment separation in `autores/split_adapter.py` and the accompanying
-experiment wrappers are provided for the anonymous PPS submission. Packaging
-changes make paths portable, pin archived input revisions, replace checks against
-private Git history with file hashes, and make a hardware smoke test independent
-of discarded pilot outputs. They do not change the candidate scoring rule,
-generation route, or training loss.
+The deployment separation in `pps/split_adapter.py` and the accompanying
+training and evaluation wrappers implement PPS. The release pins model and
+dataset revisions, validates source and checkpoint hashes, and uses real
+training-calibration questions for GPU compatibility checks. The candidate
+scoring rule, generation route, and training objective are preserved.
 
 The supplied source snapshot did not contain a standalone license file. This
 package does not assign a new license to third-party code. Model and dataset

@@ -708,7 +708,7 @@ def load_prompt(data_name, prompt_type, num_shots):
     if not num_shots:
         return []
 
-    if data_name in ["gsm_hard", "svamp", "tabmwp", "asdiv", "mawps"]:
+    if data_name in ["svamp", "tabmwp", "asdiv", "mawps"]:
         data_name = "gsm8k"
     if data_name in ["math_oai", "hungarian_exam", "math-oai", "aime24", "amc23"]:
         data_name = "math"
@@ -1205,12 +1205,7 @@ def math_equal(prediction, reference, include_percentage=True, is_close=True):
     return True
     
 def numeric_equal(prediction: float, reference: float):
-    # Note that relative tolerance has significant impact
-    # on the result of the synthesized GSM-Hard dataset
-    # if reference.is_integer():
-    #     return isclose(reference, round(prediction), abs_tol=1e-4)
-    # else:
-    # prediction = round(prediction, len(str(reference).split(".")[-1]))
+    # Preserve the evaluation protocol's relative tolerance.
     return isclose(reference, prediction, rel_tol=1e-4)
 
 def symbolic_equal(a, b):

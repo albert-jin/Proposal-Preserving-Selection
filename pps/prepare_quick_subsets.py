@@ -1,4 +1,4 @@
-"""Freeze the user's rapid-evaluation subsets before any new model scores."""
+"""Prepare fixed subsets of public benchmarks with a reproducible sampling seed."""
 import datetime
 import json
 import random
@@ -24,9 +24,9 @@ def main():
     path=ROOT/'data/quick_subset_manifest.json'
     if path.exists():assert json.loads(path.read_text())['subsets']==records
     else:save(path,dict(created_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        reason='User explicitly prioritized fixed-subset evaluation speed; previous full-evaluation queue had not started.',
+        reason='Fixed subsets for paired evaluation with a reduced inference budget.',
         subsets=records,small_dataset='AIME25 retains all30 questions because already small.',
-        comparison='Use identical subset for bootstrap and refinement. Published full-set values are separate references, not paired controls.'))
+        comparison='Use identical subsets for native and PPS deployment. Published full-set values are separate references, not paired controls.'))
     print(json.dumps({k:{x:y for x,y in v.items() if x not in ['indices','ids']} for k,v in records.items()},indent=2))
 
 

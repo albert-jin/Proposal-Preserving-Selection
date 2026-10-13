@@ -1,11 +1,10 @@
 """Single-seed complete-split evaluation using the released entropy S2T policy.
 
-Calibration uses existing train-only traces, frozen identically for bootstrap and
-self-evolved checkpoints. This does not reproduce the paper's learned router.
+Calibration uses train-only traces and is identical for native and PPS deployment.
+The executable protocol uses an entropy trigger.
 """
 import argparse
 from dataclasses import asdict
-import fcntl
 import hashlib
 import json
 import os
@@ -15,7 +14,7 @@ import subprocess
 import sys
 import time
 
-ROOT=Path(os.environ.get('AUTO3_ROOT',str(Path(__file__).resolve().parents[1] / 'work')))
+ROOT=Path(os.environ.get('PPS_ROOT',str(Path(__file__).resolve().parents[1] / 'work')))
 REPO=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(REPO/'scripts'))
 
@@ -29,6 +28,39 @@ def digest(path):
     with Path(path).open('rb') as f:
         for block in iter(lambda:f.read(8*1024*1024),b''):h.update(block)
     return h.hexdigest()
+
+
+def evaluation_sources():
+    """Fingerprint the actual source files used by a paired evaluation."""
+    names = ('scripts/evaluate_s2t.py', 'scripts/utils.py', 'scripts/parser.py',
+             'pps/evaluate_local.py', 'pps/split_adapter.py')
+    return {name: hashlib.sha256((REPO/name).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+            for name in names}
+
+
+def validate_input(source):
+    """Require an exact pinned dataset or an exact subset of that dataset."""
+    pins = json.loads((REPO/'configs/server_data_manifest.json').read_text())
+    expected = {item['file']: item for item in pins['files']}
+    if '_quick' not in source.name:
+        assert source.name in expected, 'Dataset is absent from the pinned manifest'
+        assert digest(source) == expected[source.name]['sha256'], 'Dataset hash mismatch'
+        return None
+    manifest = ROOT/'data/quick_subset_manifest.json'
+    sampling = dict(json.loads(manifest.read_text())['subsets'][source.name],
+                    manifest_sha256=digest(manifest))
+    assert sampling['source'] in expected, 'Subset source is not a pinned dataset'
+    original = ROOT/'data'/sampling['source']
+    assert digest(original) == sampling['source_sha256'] == expected[original.name]['sha256']
+    assert digest(source) == sampling['subset_sha256'], 'Subset hash mismatch'
+    original_rows, rows = read(original), read(source)
+    indices = sampling['indices']
+    assert len(original_rows) == sampling['source_n'] == expected[original.name]['n']
+    assert len(rows) == len(indices) == sampling['subset_n']
+    assert indices == sorted(set(indices)) and all(0 <= i < len(original_rows) for i in indices)
+    assert rows == [original_rows[i] for i in indices], 'Subset records differ from source'
+    assert [row['id'] for row in rows] == sampling['ids']
+    return sampling
 
 
 def save(path,value):
@@ -48,7 +80,7 @@ def freeze_entropy():
     assert values and np.isfinite(values).all()
     result=dict(quantile=0.99,threshold=float(np.quantile(values,0.99)),steps=len(values),
         source=str(source),source_sha256=digest(source),ids=[r['id'] for r in cal],
-        meaning='Top1% entropy on base-student training-calibration greedy traces; fixed for bootstrap and refined checkpoints. Uses released entropy_s2t_local, not paper router or KL policy.')
+        meaning='Top1% entropy on base-student training-calibration greedy traces; shared by native and PPS deployment. Uses released entropy_s2t_local, not paper router or KL policy.')
     path=ROOT/'results/teacher_bootstrap_v1/entropy_calibration.json'
     if path.exists():assert json.loads(path.read_text())==result
     else:save(path,result)
@@ -76,17 +108,12 @@ def main():
     assert source.parent==(ROOT/'data').resolve() and source.name in allowed
     expected,cap=allowed[source.name];rows=read(source);assert len(rows)==expected
     assert len({r['id'] for r in rows})==expected
-    sampling=None
-    if '_quick' in source.name:
-        subset_manifest=ROOT/'data/quick_subset_manifest.json'
-        sampling=dict(json.loads(subset_manifest.read_text())['subsets'][source.name],manifest_sha256=digest(subset_manifest))
-        assert sampling['subset_sha256']==digest(source) and sampling['subset_n']==expected
-        assert [r['id'] for r in rows]==sampling['ids']
-        assert digest(ROOT/'data'/sampling['source'])==sampling['source_sha256']
+    sampling=validate_input(source)
     manifest_path=checkpoint/'checkpoint_manifest.json';manifest=json.loads(manifest_path.read_text())
     assert manifest['complete']
     for name,record in manifest['files'].items():assert digest(checkpoint/name)==record['sha256']
     calibration_path,calibration=freeze_entropy()
+    import fcntl
     out.mkdir(parents=True,exist_ok=True);lock=open(out/'.evaluation.lock','a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     import torch
     from huggingface_hub import snapshot_download
@@ -101,6 +128,7 @@ def main():
     frozen=dict(arguments=vars(a),input_sha256=digest(source),checkpoint_manifest_sha256=digest(manifest_path),
         calibration_sha256=digest(calibration_path),runtime=asdict(config),
         git_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        evaluation_source_sha256=evaluation_sources(),
         comparator_identity='Released entropy-triggered S2T-local with quantized-teacher training adaptation; not KL S2T or paper learned router.',
         sampling=sampling,
         generation_adapter_mode=a.generation_adapter_mode,
